@@ -4,7 +4,15 @@
 # Ignore Gradle build output directory
 build
 
+# Binaries and generated files
+**.bin
+**/bin/**
+**.jar
+**/**.jar
+
+# VS code files 
 .vscode
 */.vscode/*
 **/.vscode/**
 **.vscode**
+
