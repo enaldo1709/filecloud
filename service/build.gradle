@@ -115,3 +115,7 @@ tasks.named('wrapper') {
 bootJar {
     enabled = false
 }
+
+bootRun {
+    enabled = false
+}
