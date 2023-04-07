@@ -1,0 +1,33 @@
+apply plugin: 'org.springframework.boot'
+
+dependencies {
+    // implementation project(':model')
+    // implementation project(':usecase')
+    // implementation project(':rest-consumer')
+    // implementation project(':model-validator')
+    // implementation project(':reactive-web')
+    // implementation project(':r2dbc')
+
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    runtimeOnly('org.springframework.boot:spring-boot-devtools')
+}
+
+task explodedJar(type: Copy) {
+    with jar
+    into "${buildDir}/exploded"
+}
+
+jar {
+    // To disable the *-plain.jar
+    enabled = false
+}
+
+bootJar {
+    // Sets output jar name
+    archiveFileName = "${project.getParent().getName()}.${archiveExtension.get()}"
+}
+
+tasks.withType(Jar) {
+    destinationDirectory = file("$rootDir/build")
+}
