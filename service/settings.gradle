@@ -11,6 +11,8 @@ rootProject.name = 'filecloud-service'
 include ':app'
 include ':model'
 include ':usecase'
+include ':localdrive-storage-adapter'
 project(':app').projectDir = file('./app')
 project(':model').projectDir = file('./domain/model')
 project(':usecase').projectDir = file('./domain/usecase')
+project(':localdrive-storage-adapter').projectDir = file('./infrastructure/driven-adapters/localdrive-storage-adapter')

@@ -20,6 +20,7 @@ import com.elenaldo.model.file.FileContent;
 import com.elenaldo.model.file.FileInformation;
 import com.elenaldo.model.file.OperationResult;
 import com.elenaldo.model.file.enums.OperationStatus;
+import com.elenaldo.model.file.exception.FileDownloadException;
 import com.elenaldo.model.file.exception.FileNotFoundException;
 import com.elenaldo.model.file.exception.FileUploadException;
 import com.elenaldo.model.file.gateways.FileStorage;
@@ -34,7 +35,7 @@ class StorageServiceTest {
 
 
     @Test
-    void testDownloadSuccess() throws FileNotFoundException {
+    void testDownloadSuccess() throws FileNotFoundException, FileDownloadException {
         FileContent content = FileContent.builder().build();
         
         when(storage.download(any(FileInformation.class)))
@@ -50,13 +51,27 @@ class StorageServiceTest {
     }
     
     @Test
-    void testDownloadFailed() throws FileNotFoundException {
+    void testDownloadFailedFileNotFound() throws FileNotFoundException, FileDownloadException {
         when(storage.download(any(FileInformation.class)))
             .thenThrow(new FileNotFoundException());
         
         OperationResult expected = OperationResult.builder()
             .status(OperationStatus.FAILED)
             .message("File not found")
+            .build();
+
+        OperationResult actual = service.download(FileInformation.builder().name("test").build());
+        assertEquals(expected, actual);
+    }
+    
+    @Test
+    void testDownloadFailedDownloadException() throws FileNotFoundException, FileDownloadException {
+        when(storage.download(any(FileInformation.class)))
+            .thenThrow(new FileDownloadException());
+        
+        OperationResult expected = OperationResult.builder()
+            .status(OperationStatus.FAILED)
+            .message("Internal error during file download")
             .build();
 
         OperationResult actual = service.download(FileInformation.builder().name("test").build());

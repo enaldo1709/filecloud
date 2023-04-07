@@ -6,6 +6,7 @@ import com.elenaldo.model.file.FileContent;
 import com.elenaldo.model.file.FileInformation;
 import com.elenaldo.model.file.OperationResult;
 import com.elenaldo.model.file.enums.OperationStatus;
+import com.elenaldo.model.file.exception.FileDownloadException;
 import com.elenaldo.model.file.exception.FileNotFoundException;
 import com.elenaldo.model.file.exception.FileUploadException;
 import com.elenaldo.model.file.gateways.FileStorage;
@@ -45,7 +46,7 @@ public class StorageService {
                 .status(OperationStatus.SUCCESS)
                 .content(content)
                 .build();
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException | FileDownloadException e) {
             return OperationResult.builder()
                 .status(OperationStatus.FAILED)
                 .message(e.getMessage())
