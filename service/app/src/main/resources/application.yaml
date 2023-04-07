@@ -1,0 +1,14 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /filecloud
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 1GB
+      max-request-size: 1GB
+
+storage:
+  local:
+    folder: ./build/files

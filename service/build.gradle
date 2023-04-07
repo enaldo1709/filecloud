@@ -1,7 +1,7 @@
 buildscript {
 	ext {
 		springBootVersion = '3.0.5'
-		sonarVersion = '3.4.0.2513'
+		sonarVersion = '4.0.0.2929'
 		jacocoVersion = '0.8.8'
         lombokVersion = '1.18.24'
 	}
@@ -10,7 +10,7 @@ buildscript {
 plugins {
     id 'java'
     id 'org.springframework.boot' version "3.0.5"
-    id 'org.sonarqube' version "3.3"
+    id 'org.sonarqube' version "4.0.0.2929"
     id 'jacoco' 
     
 }
@@ -34,11 +34,17 @@ subprojects{
     sourceCompatibility = '17'
 
     dependencies {
+        implementation 'io.projectreactor:reactor-core'
+        implementation 'io.projectreactor.addons:reactor-extra'
+
+        testImplementation 'io.projectreactor:reactor-test'
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
         compileOnly "org.projectlombok:lombok:${lombokVersion}"
         annotationProcessor  "org.projectlombok:lombok:${lombokVersion}"
         testCompileOnly  "org.projectlombok:lombok:${lombokVersion}"
         testAnnotationProcessor  "org.projectlombok:lombok:${lombokVersion}"
+        
         implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
     }
 
@@ -67,7 +73,7 @@ subprojects{
     }
 }
 
-sonarqube {
+sonar {
     def modules = subprojects.projectDir.collect { "${it.toString().replace(project.projectDir.toString() + "/", "")}" }
     properties {
         property "sonar.sourceEnconding", "UTF-8"
@@ -113,5 +119,9 @@ tasks.named('wrapper') {
 }
 
 bootJar {
+    enabled = false
+}
+
+bootRun {
     enabled = false
 }
