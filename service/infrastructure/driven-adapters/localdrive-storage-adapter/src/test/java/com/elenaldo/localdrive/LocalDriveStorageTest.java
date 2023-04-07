@@ -22,11 +22,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.elenaldo.model.file.FileContent;
 import com.elenaldo.model.file.FileInformation;
 import com.elenaldo.model.file.exception.FileDownloadException;
 import com.elenaldo.model.file.exception.FileNotFoundException;
 import com.elenaldo.model.file.exception.FileUploadException;
+
+import reactor.test.StepVerifier;
 
 
 class LocalDriveStorageTest {
@@ -81,49 +82,75 @@ class LocalDriveStorageTest {
 
     @Test
     void testDownloadSuccess() throws FileNotFoundException, FileDownloadException, IOException {
-        FileContent content = storage.download(FileInformation.builder().name(FILE_NAME).build());
-        String actual =  new String(content.getContent().readAllBytes(), StandardCharsets.UTF_8);
-        assertEquals(FILE_CONTENT, actual);
+        StepVerifier.create(storage.download(FileInformation.builder().name(FILE_NAME).build()))
+            .expectSubscription()
+            .assertNext(content -> {
+                String actual;
+                try {
+                    actual = new String(content.getContent().readAllBytes(), StandardCharsets.UTF_8);
+                } catch (IOException e) {
+                    actual = null;
+                }
+                assertEquals(FILE_CONTENT, actual);
+            }).verifyComplete();
     }
 
     @Test
     void testDownloadFailedFileNotFound() throws FileNotFoundException, FileDownloadException, IOException {
-        Assertions.assertThatThrownBy(() -> storage.download(FileInformation.builder().name("FILE_NAME").build()))
-            .isInstanceOf(FileNotFoundException.class)
-            .hasMessageContaining("File not found");
+        StepVerifier.create(storage.download(FileInformation.builder().name("FILE_NAME").build()))
+            .expectError(FileNotFoundException.class)
+            .verify();
+
+
+        // Assertions.assertThatThrownBy(() -> storage.download(FileInformation.builder().name("FILE_NAME").build()))
+        //     .isInstanceOf(FileNotFoundException.class)
+        //     .hasMessageContaining("File not found");
         
     }
 
     @Test
     void testExistSuccess() {
-        assertTrue(storage.exist(FILE_NAME));
+        StepVerifier.create(storage.exist(FILE_NAME))
+            .expectSubscription()
+            .assertNext(actual -> assertTrue(actual))
+            .verifyComplete();
     }
 
     @Test
     void testExistFailed() {
-        assertFalse(storage.exist("FILE_CONTENT"));
+        StepVerifier.create(storage.exist("FILE_NAME"))
+            .expectSubscription()
+            .assertNext(actual -> assertFalse(actual))
+            .verifyComplete();
     }
 
     @Test
-    void testUploadSuccess() throws FileUploadException, java.io.FileNotFoundException, IOException {
+    void testUploadSuccess() {
         String expectedContent = "other example file";
-        storage.upload(
-            FileInformation.builder().name("test2.txt").build(), 
-            new ByteArrayInputStream(expectedContent.getBytes())
-        );
-
-        File probe = Path.of(ROOT_FOLDER).resolve("test2.txt").toFile();
-        assertTrue(probe.exists());
-        FileInputStream reading = new FileInputStream(probe);
-        String actualContent = new String(reading.readAllBytes(), StandardCharsets.UTF_8);
-        assertEquals(expectedContent, actualContent);
-        reading.close();
+        StepVerifier.create(
+            storage.upload(
+                FileInformation.builder().name("test2.txt").build(), 
+                new ByteArrayInputStream(expectedContent.getBytes())
+            )
+        ).expectSubscription()
+        .assertNext(v -> {
+            File probe = Path.of(ROOT_FOLDER).resolve("test2.txt").toFile();
+            assertTrue(probe.exists());
+            String actualContent;
+            try (FileInputStream reading = new FileInputStream(probe)) {
+                actualContent = new String(reading.readAllBytes(), StandardCharsets.UTF_8);
+                reading.close();
+            } catch (IOException e) {
+                actualContent = null;
+            }
+            assertEquals(expectedContent, actualContent);
+        }).verifyComplete();
     }
 
     @Test
     void testUploadFailedUploadError() {
-        Assertions.assertThatThrownBy(
-            () -> storage.upload(FileInformation.builder().name("").build(), InputStream.nullInputStream())
-        ).isInstanceOf(FileUploadException.class);
+        StepVerifier.create(storage.upload(FileInformation.builder().name("").build(), InputStream.nullInputStream()))
+            .expectError(FileUploadException.class)
+            .verify();
     }
 }
