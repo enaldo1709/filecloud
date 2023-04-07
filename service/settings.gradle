@@ -9,4 +9,8 @@
 
 rootProject.name = 'filecloud-service'
 include ':app'
+include ':model'
+include ':usecase'
 project(':app').projectDir = file('./app')
+project(':model').projectDir = file('./domain/model')
+project(':usecase').projectDir = file('./domain/usecase')
