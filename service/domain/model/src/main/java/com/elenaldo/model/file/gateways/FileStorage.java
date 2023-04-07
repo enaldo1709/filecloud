@@ -4,12 +4,11 @@ import java.io.InputStream;
 
 import com.elenaldo.model.file.FileContent;
 import com.elenaldo.model.file.FileInformation;
-import com.elenaldo.model.file.exception.FileDownloadException;
-import com.elenaldo.model.file.exception.FileNotFoundException;
-import com.elenaldo.model.file.exception.FileUploadException;
+
+import reactor.core.publisher.Mono;
 
 public interface FileStorage {
-    public boolean exist(String filename);
-    public void upload(FileInformation information, InputStream dataStream) throws FileUploadException;
-    public FileContent download(FileInformation information) throws FileNotFoundException, FileDownloadException;
+    public Mono<Boolean> exist(String filename);
+    public Mono<FileInformation> upload(FileInformation information, InputStream dataStream);
+    public Mono<FileContent> download(FileInformation information);
 }

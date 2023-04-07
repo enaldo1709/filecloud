@@ -1,8 +1,8 @@
 package com.elenaldo.usecase;
 
 import java.io.InputStream;
+import java.nio.file.FileAlreadyExistsException;
 
-import com.elenaldo.model.file.FileContent;
 import com.elenaldo.model.file.FileInformation;
 import com.elenaldo.model.file.OperationResult;
 import com.elenaldo.model.file.enums.OperationStatus;
@@ -12,45 +12,45 @@ import com.elenaldo.model.file.exception.FileUploadException;
 import com.elenaldo.model.file.gateways.FileStorage;
 
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
 public class StorageService {
     private final FileStorage storage;
 
-    public OperationResult upload(FileInformation info, InputStream data) {
-        if (storage.exist(info.getName())) {
-            return OperationResult.builder()
-                .status(OperationStatus.FAILED)
-                .message("File already exists on storage")
-                .build();
-        }
-        try {
-            storage.upload(info, data);
-            return OperationResult.builder()
-                .status(OperationStatus.SUCCESS)
-                .message("File uploaded successfuly")
-                .build();
-        } catch (FileUploadException e) {
-            return OperationResult.builder()
-                .status(OperationStatus.FAILED)
-                .message(e.getMessage())
-                .build();
-        }
-        
+    public Mono<OperationResult> upload(FileInformation info, InputStream data) {
+        return storage.exist(info.getName())
+            .flatMap(b -> b.booleanValue() 
+                ? this.mapErrorResult(new FileAlreadyExistsException("File already exists on storage"))
+                : storage.upload(info, data)
+                    .map(i -> OperationResult.builder()
+                        .status(OperationStatus.SUCCESS)
+                        .message("File uploaded successfuly")
+                        .build()
+                    )
+            ).onErrorResume(FileUploadException.class, this::mapErrorResult);
     }
 
-    public OperationResult download(FileInformation file) {
-        try {
-            FileContent content = storage.download(file);
-            return OperationResult.builder()
-                .status(OperationStatus.SUCCESS)
-                .content(content)
-                .build();
-        } catch (FileNotFoundException | FileDownloadException e) {
-            return OperationResult.builder()
+    public Mono<OperationResult> download(FileInformation file) {
+        return storage.download(file)
+            .map(content -> OperationResult.builder()
+                    .status(OperationStatus.SUCCESS)
+                    .content(content)
+                    .build()
+            ).onErrorResume(FileNotFoundException.class, this::mapErrorResult)
+            .onErrorResume(FileDownloadException.class, this::mapErrorResult)
+            .onErrorResume(e -> Mono.just(
+                OperationResult.builder().status(OperationStatus.FAILED).message("Internal error").build()
+            ));
+    }
+
+
+    private Mono<OperationResult> mapErrorResult(Throwable t) {
+        return Mono.just(
+            OperationResult.builder()
                 .status(OperationStatus.FAILED)
-                .message(e.getMessage())
-                .build();
-        }
+                .message(t.getMessage())
+                .build()
+        );
     }
 }

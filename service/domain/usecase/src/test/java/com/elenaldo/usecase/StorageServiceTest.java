@@ -3,9 +3,6 @@ package com.elenaldo.usecase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
@@ -25,6 +22,9 @@ import com.elenaldo.model.file.exception.FileNotFoundException;
 import com.elenaldo.model.file.exception.FileUploadException;
 import com.elenaldo.model.file.gateways.FileStorage;
 
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
 @ExtendWith(MockitoExtension.class)
 class StorageServiceTest {
     @Mock
@@ -39,90 +39,100 @@ class StorageServiceTest {
         FileContent content = FileContent.builder().build();
         
         when(storage.download(any(FileInformation.class)))
-            .thenReturn(content);
+            .thenReturn(Mono.just(content));
 
         OperationResult expected = OperationResult.builder()
             .status(OperationStatus.SUCCESS)
             .content(content)
             .build();
         
-        OperationResult actual = service.download(FileInformation.builder().name("test").build());
-        assertEquals(expected, actual);
+        StepVerifier.create(service.download(FileInformation.builder().name("test").build()))
+            .expectSubscription()
+            .assertNext(actual -> assertEquals(expected, actual))
+            .verifyComplete();
     }
     
     @Test
     void testDownloadFailedFileNotFound() throws FileNotFoundException, FileDownloadException {
         when(storage.download(any(FileInformation.class)))
-            .thenThrow(new FileNotFoundException());
+            .thenReturn(Mono.error(new FileNotFoundException()));
         
         OperationResult expected = OperationResult.builder()
             .status(OperationStatus.FAILED)
             .message("File not found")
             .build();
 
-        OperationResult actual = service.download(FileInformation.builder().name("test").build());
-        assertEquals(expected, actual);
+        StepVerifier.create(service.download(FileInformation.builder().name("test").build()))
+            .expectSubscription()
+            .assertNext(actual -> assertEquals(expected, actual))
+            .verifyComplete();
     }
     
     @Test
     void testDownloadFailedDownloadException() throws FileNotFoundException, FileDownloadException {
         when(storage.download(any(FileInformation.class)))
-            .thenThrow(new FileDownloadException());
+            .thenReturn(Mono.error(new FileDownloadException()));
         
         OperationResult expected = OperationResult.builder()
             .status(OperationStatus.FAILED)
             .message("Internal error during file download")
             .build();
 
-        OperationResult actual = service.download(FileInformation.builder().name("test").build());
-        assertEquals(expected, actual);
+        StepVerifier.create(service.download(FileInformation.builder().name("test").build()))
+            .expectSubscription()
+            .assertNext(actual -> assertEquals(expected, actual))
+            .verifyComplete();
     }
 
     @Test
     void testUploadSuccess() throws FileUploadException {
-        when(storage.exist(anyString())).thenReturn(false);
-        doNothing().when(storage).upload(isA(FileInformation.class), isA(InputStream.class));
+        when(storage.exist(anyString())).thenReturn(Mono.just(false));
+        when(storage.upload(any(FileInformation.class), any(InputStream.class)))
+            .thenReturn(Mono.just(FileInformation.builder().build()));
 
         OperationResult expected = OperationResult.builder()
             .status(OperationStatus.SUCCESS)
             .message("File uploaded successfuly")
             .build();
 
-        OperationResult actual = service.upload(
-            FileInformation.builder().name("test").build(), InputStream.nullInputStream());
-        
-        assertEquals(expected, actual);
+        StepVerifier
+            .create(service.upload(FileInformation.builder().name("test").build(), InputStream.nullInputStream()))
+            .expectSubscription()
+            .assertNext(actual -> assertEquals(expected, actual))
+            .verifyComplete();
     }
 
     @Test
     void testUploadFailedByFileExistsException() throws FileUploadException {
-        when(storage.exist(anyString())).thenReturn(true);
+        when(storage.exist(anyString())).thenReturn(Mono.just(true));
 
         OperationResult expected = OperationResult.builder()
             .status(OperationStatus.FAILED)
             .message("File already exists on storage")
             .build();
 
-        OperationResult actual = service.upload(
-            FileInformation.builder().name("test").build(), InputStream.nullInputStream());
-        
-        assertEquals(expected, actual);
+        StepVerifier
+            .create(service.upload(FileInformation.builder().name("test").build(), InputStream.nullInputStream()))
+            .expectSubscription()
+            .assertNext(actual -> assertEquals(expected, actual))
+            .verifyComplete();
     }
 
     @Test
     void testUploadFailedByUploadException() throws FileUploadException {
-        when(storage.exist(anyString())).thenReturn(false);
-        doThrow(new FileUploadException(null))
-            .when(storage).upload(isA(FileInformation.class), isA(InputStream.class));
+        when(storage.exist(anyString())).thenReturn(Mono.just(false));
+        when(storage.upload(any(FileInformation.class), any(InputStream.class)))
+            .thenReturn(Mono.error(new FileUploadException(null)));
 
         OperationResult expected = OperationResult.builder()
             .status(OperationStatus.FAILED)
             .message("Error uploading file")
             .build();
 
-        OperationResult actual = service.upload(
-            FileInformation.builder().name("test").build(), InputStream.nullInputStream());
-        
-        assertEquals(expected, actual);
+        StepVerifier
+            .create(service.upload(FileInformation.builder().name("test").build(), InputStream.nullInputStream()))
+            .expectSubscription()   
+            .assertNext(actual -> assertEquals(expected, actual))
+            .verifyComplete();
     }
 }

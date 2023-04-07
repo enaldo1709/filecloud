@@ -34,11 +34,17 @@ subprojects{
     sourceCompatibility = '17'
 
     dependencies {
+        implementation 'io.projectreactor:reactor-core'
+        implementation 'io.projectreactor.addons:reactor-extra'
+
+        testImplementation 'io.projectreactor:reactor-test'
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
         compileOnly "org.projectlombok:lombok:${lombokVersion}"
         annotationProcessor  "org.projectlombok:lombok:${lombokVersion}"
         testCompileOnly  "org.projectlombok:lombok:${lombokVersion}"
         testAnnotationProcessor  "org.projectlombok:lombok:${lombokVersion}"
+        
         implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
     }
 
