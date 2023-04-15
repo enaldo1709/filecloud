@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
@@ -20,6 +21,7 @@ import com.elenaldo.model.file.exception.FileUploadException;
 import com.elenaldo.model.file.gateways.FileStorage;
 
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -54,6 +56,16 @@ public class LocalDriveStorage implements FileStorage {
             .map(f -> information)
             .doOnError(e -> log.error("Error writing file -> ", e.getCause()))
             .onErrorMap(FileUploadException::new);
+    }
+
+    @Override
+    public Flux<FileInformation> list() {
+        return Mono.just(storage.toFile())
+            .map(File::listFiles)
+            .flatMapIterable(Arrays::asList)
+            .map(f -> FileInformation.builder().name(f.getName()).build())
+            .doOnError(e -> log.error("Error reading files -> ", e.getCause()))
+            .onErrorMap(FileNotFoundException::new);
     }
 
     @Override

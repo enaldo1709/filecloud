@@ -23,5 +23,6 @@ spring:
       max-request-size: 1GB
 
 storage:
+  host: ${HOST_IP:null}
   local:
     folder: ${ROOT_FOLDER:"./filecloud"}

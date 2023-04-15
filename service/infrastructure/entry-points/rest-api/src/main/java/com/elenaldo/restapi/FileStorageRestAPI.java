@@ -2,8 +2,11 @@ package com.elenaldo.restapi;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Objects;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -28,6 +31,10 @@ import reactor.core.publisher.Mono;
 public class FileStorageRestAPI {
     private final StorageService service;
 
+    @Autowired
+    @Qualifier("download-url")
+    private String downloadURL;
+
     @PostMapping("/upload")
     public Mono<ResponseEntity<Object>> upload(@RequestParam("file") MultipartFile file, HttpServletRequest req) {
         String filename = req.getParameter("name");
@@ -46,6 +53,18 @@ public class FileStorageRestAPI {
                 e -> Mono.just(ResponseEntity.internalServerError().body("Error performing upload operation"))
             );
     }
+
+    @GetMapping("/list")
+    public Mono<ResponseEntity<List<FileInformationDTO>>> list(){
+        return service.list()
+            .map(fi -> new FileInformationDTO(fi.getName(), String.format("%s?filename=%s",downloadURL, fi.getName())))
+            .collectList()
+            .map(ResponseEntity.ok()::body)
+            .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().build()));
+
+    }
+
+    private record FileInformationDTO(String name, String downloadURL){}
 
     @GetMapping("/download")
     public Mono<ResponseEntity<Object>> download(HttpServletRequest req) {
