@@ -1,6 +1,6 @@
 package com.elenaldo.restapi.config;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
 
@@ -32,10 +32,10 @@ public class RestApiConfig {
     ) throws UnknownHostException {
         String ip = hostIP;
         if (Objects.isNull(hostIP) || "null".equals(hostIP)) {
-            ip = Inet4Address.getLocalHost().getHostAddress();
+            ip = InetAddress.getLocalHost().getHostAddress();
         }
 
-        log.info("ip -> {}",ip);
+        log.info("Local host ip -> {}",ip);
         return String.format("http://%s:%d%s/download", ip , port, contextPath);
     }
 }
