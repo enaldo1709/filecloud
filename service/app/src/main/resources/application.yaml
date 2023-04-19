@@ -3,6 +3,19 @@ server:
   servlet:
     context-path: /filecloud
 
+management:
+  server:
+    port: 9080
+  endpoints:
+    web:
+      base-path: /management
+      exposure:
+        include: "health"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
 spring:
   servlet:
     multipart:
@@ -10,5 +23,6 @@ spring:
       max-request-size: 1GB
 
 storage:
+  host: ${HOST_IP:null}
   local:
-    folder: ./build/files
+    folder: ${ROOT_FOLDER:"./filecloud"}

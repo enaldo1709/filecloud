@@ -5,9 +5,7 @@ dependencies {
     implementation project(':usecase')
     implementation project(':localdrive-storage-adapter')
     implementation project(':rest-api')
-    // implementation project(':rest-consumer')
-    // implementation project(':model-validator')
-    // implementation project(':reactive-web')
+ 
     // implementation project(':r2dbc')
 
     implementation 'org.springframework.boot:spring-boot-starter'

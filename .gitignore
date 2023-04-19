@@ -1,0 +1,23 @@
+# VS code files
+**.code-workspace
+
+
+# Temporal files
+*.tmp
+**.tmp
+**/**.tmp
+**tmp**
+**/**tmp**
+
+
+# VS code files 
+.vscode
+*/.vscode/*
+**/.vscode/**
+**.vscode**
+
+# Local files
+**-local**
+**/**-local**/**
+**-local**
+*-local*

@@ -12,6 +12,7 @@ import com.elenaldo.model.file.exception.FileUploadException;
 import com.elenaldo.model.file.gateways.FileStorage;
 
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
@@ -42,6 +43,10 @@ public class StorageService {
             .onErrorResume(e -> Mono.just(
                 OperationResult.builder().status(OperationStatus.FAILED).message("Internal error").build()
             ));
+    }
+
+    public Flux<FileInformation> list() {
+        return storage.list();
     }
 
 
