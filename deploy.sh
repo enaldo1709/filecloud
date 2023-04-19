@@ -82,7 +82,6 @@ install_remote() {
     replace_tokens_path="$(whereis replacetokens)"
     replace_tokens_path=(${replace_tokens_path//': '/ })
     replace_tokens_path="${replace_tokens_path[1]}"
-    #echo "replace tokens is on --> $replace_tokens_path"
 
     uuidv4="$(cat /proc/sys/kernel/random/uuid)"
     suff=(${uuidv4//'-'/ })
