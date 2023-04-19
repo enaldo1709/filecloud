@@ -1,7 +1,8 @@
-version: '3'
+version: '3.9'
+name: {{PROJECT_NAME}}-deployment
 services:
   service:
-    image: filecloud-service:latest
+    image: {{SERVICE_IMAGE}}
     ports:
       - 8080:8080
     healthcheck:
@@ -12,7 +13,8 @@ services:
       start_period: 20s
     restart: always
     environment:
+      - HOST_IP={{HOST_IP}}
       - ROOT_FOLDER=/filecloud
     volumes:
-      - /tmp/filecloud:/filecloud
+      - {{LOCAL_FOLDER}}/files:/filecloud
     entrypoint: ["sh","init.sh"]

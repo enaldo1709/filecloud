@@ -1,5 +1,11 @@
 #!/bin/bash
 
+project_prefix="filecloud"
+
+if [ $1 -ne "" ]; then 
+    project_prefix=$1
+fi
+
 # Building service
 echo "$(date) [INFO]: Building service...  " >&1
 cd ./service
@@ -19,7 +25,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "$(date) [INFO]: Building service image -> Docker version: $docker_version" >&1
-sh -c "docker build --pull --rm -f \"deployment/Dockerfile\" -t filecloud-service:latest \"deployment\""
+sh -c "docker build --pull --rm -f \"deployment/Dockerfile\" -t $project_prefix-service:latest \"deployment\""
 rm ./deployment/app.jar
 
 
