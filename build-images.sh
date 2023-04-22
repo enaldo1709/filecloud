@@ -16,7 +16,7 @@ if [ $? -ne 0 ]; then
     return 1
 fi
 
-# Building docker images
+# Building service image
 mv ./build/*.jar ./deployment/app.jar
 docker_version=$(sh -c "docker -v")
 if [ $? -ne 0 ]; then 
@@ -28,5 +28,19 @@ echo "$(date) [INFO]: Building service image -> Docker version: $docker_version"
 sh -c "docker build --pull --rm -f \"deployment/Dockerfile\" -t $project_prefix-service:latest \"deployment\""
 rm ./deployment/app.jar
 
+
+# Building application image
+
+cd ../app
+
+mkdir -p ./deployment/app
+
+cp -r src ./deployment/app/
+cp -r *.json ./deployment/app/
+
+echo "$(date) [INFO]: Building application image -> Docker version: $docker_version" >&1
+sh -c "docker build --pull --rm -f \"deployment/Dockerfile\" -t $project_prefix-application:latest \"deployment\""
+
+rm -r ./deployment/app
 
 echo "$(date) [INFO]: Build complete." >&1
