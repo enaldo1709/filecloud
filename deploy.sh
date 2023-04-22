@@ -62,9 +62,8 @@ install_remote() {
     operation=$2
     host=$3
     username=$4
-    password=$(echo $5 | base64 -d)
 
-    ftp_url="ftp://$username:$password@$host/"
+    ftp_url="ftp://$username@$host/"
     
     images=$(docker images --format="{{.Repository}}:{{.Tag}}" | grep $project_name)
     
@@ -91,20 +90,24 @@ install_remote() {
     cp -f $replace_tokens_path ./artifact/
     
     cp --force docker-compose.yaml ./artifact/deploy.yaml
-    cp --force $6 ./artifact/
+    cp --force $5 ./artifact/
 
     zip -r artifact-$suff.zip artifact
 
-    ssh $username@$host sh -c "docker compose --file 'artifact/$1-deploy.yaml' down"
-    ssh $username@$host rm -r ./artifact ./artifact-*.zip
+    ssh $username@$host "bash -c \"docker compose --file 'artifact/$1-deploy.yaml' down\""
+    ssh $username@$host "bash -c \"rm -r artifact\""
+    
+    
 
-    ftp -u $ftp_url artifact-$suff.zip
+    bash -c "sftp $username@$host:/home/$username <<< $'put ./artifact-$suff.zip'"
+
 
     rm -r ./artifact ./artifact-*.zip
 
-    ssh $username@$host unzip artifact-$suff.zip
-    ssh $username@$host chmod a+x ./artifact/init.sh
-    ssh $username@$host ./artifact/init.sh $1 $6
+    ssh $username@$host "unzip artifact-$suff.zip"
+    ssh $username@$host "chmod a+x ./artifact/init.sh"
+    ssh $username@$host "./artifact/init.sh $1 $5"
+    ssh $username@$host "bash -c \"rm -r artifact-*.zip\""
 }
 
 case $2 in
@@ -112,7 +115,7 @@ case $2 in
         deploy_docker_compose $1 $3
     ;;
     "install-remote")
-        install_remote $1 $3 $4 $5 $6 $7
+        install_remote $1 $3 $4 $5 $6
     ;;
     *)
         echo "$(date) [ERROR]: Invalid deployment tool" >&2
