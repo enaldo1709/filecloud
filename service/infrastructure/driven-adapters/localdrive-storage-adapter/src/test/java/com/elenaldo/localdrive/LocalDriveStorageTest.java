@@ -52,6 +52,11 @@ class LocalDriveStorageTest {
     static void postTests() throws IOException {
         Path root = Path.of(ROOT_FOLDER);
         for (File file : root.toFile().listFiles()) {
+            if (file.isDirectory()) {
+                for (File f2 : file.listFiles()) {
+                    Files.delete(f2.toPath());
+                }
+            }
             Files.delete(file.toPath());
         }
         Files.deleteIfExists(root);
@@ -59,22 +64,22 @@ class LocalDriveStorageTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        storage = new LocalDriveStorage(ROOT_FOLDER);
+        storage = new LocalDriveStorage(ROOT_FOLDER,30);
     }
 
     @Test
     void testConstructServiceSuccess() throws IOException {
-        LocalDriveStorage actual = new LocalDriveStorage(ROOT_FOLDER+"/other");
+        LocalDriveStorage actual = new LocalDriveStorage(ROOT_FOLDER+"/other",30);
         assertNotNull(actual);
     }
 
     @Test
     void testConstructFailedNoAccess() throws IOException {
-        Assertions.assertThatThrownBy(() -> new LocalDriveStorage("/root"))
+        Assertions.assertThatThrownBy(() -> new LocalDriveStorage("/root",30))
             .isInstanceOf(FileSystemException.class)
             .hasMessageContaining("Cant access to provided storage location -> /root");
             
-        Assertions.assertThatThrownBy(() -> new LocalDriveStorage("/home"))
+        Assertions.assertThatThrownBy(() -> new LocalDriveStorage("/home",30))
             .isInstanceOf(FileSystemException.class)
             .hasMessageContaining("Cant access to provided storage location -> /home");
         
@@ -100,12 +105,6 @@ class LocalDriveStorageTest {
         StepVerifier.create(storage.download(FileInformation.builder().name("FILE_NAME").build()))
             .expectError(FileNotFoundException.class)
             .verify();
-
-
-        // Assertions.assertThatThrownBy(() -> storage.download(FileInformation.builder().name("FILE_NAME").build()))
-        //     .isInstanceOf(FileNotFoundException.class)
-        //     .hasMessageContaining("File not found");
-        
     }
 
     @Test
@@ -152,5 +151,20 @@ class LocalDriveStorageTest {
         StepVerifier.create(storage.upload(FileInformation.builder().name("").build(), InputStream.nullInputStream()))
             .expectError(FileUploadException.class)
             .verify();
+    }
+
+    @Test
+    void testDeleteSuccess() throws IOException {
+        preTests();
+        StepVerifier.create(storage.delete(FILE_NAME))
+            .expectSubscription()
+            .assertNext(b -> assertTrue(b))
+            .verifyComplete();
+
+    }
+    
+    @Test
+    void testDeleteFailed() {
+
     }
 }

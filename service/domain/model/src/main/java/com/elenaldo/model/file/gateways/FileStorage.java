@@ -13,4 +13,5 @@ public interface FileStorage {
     public Mono<FileInformation> upload(FileInformation information, InputStream dataStream);
     public Flux<FileInformation> list();
     public Mono<FileContent> download(FileInformation information);
+    public Mono<Boolean> delete(String filename);
 }

@@ -24,5 +24,7 @@ spring:
 
 storage:
   host: ${HOST_IP:null}
+  trash:
+    ttl: ${TRASH_TTL:30}
   local:
     folder: ${ROOT_FOLDER:"./filecloud"}
