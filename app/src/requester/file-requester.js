@@ -20,7 +20,7 @@ class FileRequester {
         formdata.append('file', new Blob([new Uint8Array(file.buffer)]), file.originalname)
 
         
-        return await fetch(`${this.url}/upload`,{
+        return await fetch(`${this.url}/upload?filename=${file.originalname}`,{
             method: 'POST',
             body: formdata
         });
