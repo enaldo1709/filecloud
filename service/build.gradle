@@ -118,6 +118,8 @@ tasks.named('wrapper') {
     gradleVersion = '8.0.2'
 }
 
+tasks.named("jacocoMergedReport").configure { dependsOn("test") }
+
 bootJar {
     enabled = false
 }

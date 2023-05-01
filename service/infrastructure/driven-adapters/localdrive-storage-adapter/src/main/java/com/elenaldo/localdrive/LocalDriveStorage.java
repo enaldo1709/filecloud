@@ -2,34 +2,34 @@ package com.elenaldo.localdrive;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.ReflectionUtils;
 
-import com.elenaldo.localdrive.util.FileIO;
+import com.elenaldo.localdrive.util.LocalBufferedFileWriter;
 import com.elenaldo.model.file.FileContent;
 import com.elenaldo.model.file.FileInformation;
 import com.elenaldo.model.file.exception.FileDeleteException;
 import com.elenaldo.model.file.exception.FileNotFoundException;
 import com.elenaldo.model.file.exception.FileUploadException;
+import com.elenaldo.model.file.gateways.BufferedFileWriter;
 import com.elenaldo.model.file.gateways.FileStorage;
 
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 
 @Slf4j
 @Repository
@@ -68,15 +68,22 @@ public class LocalDriveStorage implements FileStorage {
     }
 
     @Override
-    public Mono<FileInformation> upload(FileInformation information, InputStream dataStream) {
-        return Mono.just(information.getName())
+    public Mono<BufferedFileWriter> upload(FileInformation information) {
+        return Mono.just(information)
+            .map(FileInformation::getName)
+            .flatMap(this::validateFilename)
             .map(storage::resolve)
             .map(Path::toFile)
-            .flatMap(f -> this.writeFile(f, dataStream))
-            .map(f -> information)
-            .doOnError(e -> log.error("Error writing file -> ", e.getCause()))
-            .onErrorMap(FileUploadException::new);
+            .onErrorMap(FileUploadException::new)
+            .map(LocalBufferedFileWriter::new);
     }
+
+    private Mono<String> validateFilename(String filename) {
+        if (Objects.isNull(filename) || "".equals(filename)) 
+            return Mono.error(new FileUploadException(null));
+        return Mono.just(filename);
+    }
+
 
     @Override
     public Flux<FileInformation> list() {
@@ -94,7 +101,7 @@ public class LocalDriveStorage implements FileStorage {
             .map(storage::resolve)
             .map(Path::toFile)
             .flatMap(this::readFile)
-            .map(FileContent.builder()::content)
+            .map(t -> FileContent.builder().content(t.getT1()).size(t.getT2().longValue()))
             .map(b -> b.information(information))
             .map(b -> b.build())
             .doOnSuccess(fc -> log.info("",fc))
@@ -118,41 +125,13 @@ public class LocalDriveStorage implements FileStorage {
             .onErrorMap(FileDeleteException::new);
     }
 
-    private Mono<File> writeFile(File file, InputStream dataSource) {
-        return Mono.fromRunnable(() -> new FileIO(file, dataSource).writeFileAsync()).then(Mono.just(file));
-        
-    }
-
-    private Mono<FileInputStream> readFile(File file) {
+    private Mono<Tuple2<FileInputStream,Long>> readFile(File file) {
         try {
-            return Mono.just(new FileInputStream(file)); 
+            return Mono.just(new FileInputStream(file)).zipWith(Mono.just(file.length())); 
         } catch (java.io.FileNotFoundException e) {
             return Mono.error(e);
         }
     }
-
-    private void write(File file, InputStream dataSource) {
-        try (FileOutputStream writing = new FileOutputStream(file)) {
-            final int available = dataSource.available();
-            final byte[] buffer = new byte[64];
-            int wrote = 0;
-            int remaining = available;
-            while (remaining > 0) {
-                log.info("available -> {}",dataSource.available());
-                int read = dataSource.readNBytes(buffer, 0, buffer.length);
-                writing.write(buffer, 0, read);
-                wrote+=read;
-                remaining -= read;
-            }
-            //writing.write(dataSource.readAllBytes());
-            dataSource.close();
-        } catch (IOException e) {
-            ReflectionUtils.rethrowRuntimeException(e);
-        }
-        
-    }
-
-
 
     private void flushOldFiles() {
         AtomicInteger deleted = new AtomicInteger(0);
@@ -170,4 +149,5 @@ public class LocalDriveStorage implements FileStorage {
             deleted.get(), this.trash.toFile().listFiles().length);
         Executors.newScheduledThreadPool(1).schedule(this::flushOldFiles, 1, TimeUnit.HOURS);
     }
+
 }

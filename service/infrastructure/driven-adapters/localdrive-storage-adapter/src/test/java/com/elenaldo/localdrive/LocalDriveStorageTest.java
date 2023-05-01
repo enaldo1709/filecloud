@@ -2,15 +2,13 @@ package com.elenaldo.localdrive;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
@@ -26,6 +24,7 @@ import com.elenaldo.model.file.FileInformation;
 import com.elenaldo.model.file.exception.FileDownloadException;
 import com.elenaldo.model.file.exception.FileNotFoundException;
 import com.elenaldo.model.file.exception.FileUploadException;
+import com.elenaldo.model.file.gateways.BufferedFileWriter;
 
 import reactor.test.StepVerifier;
 
@@ -125,30 +124,28 @@ class LocalDriveStorageTest {
 
     @Test
     void testUploadSuccess() {
-        String expectedContent = "other example file";
-        StepVerifier.create(
-            storage.upload(
-                FileInformation.builder().name("test2.txt").build(), 
-                new ByteArrayInputStream(expectedContent.getBytes())
-            )
-        ).expectSubscription()
-        .assertNext(v -> {
-            File probe = Path.of(ROOT_FOLDER).resolve("test2.txt").toFile();
-            assertTrue(probe.exists());
-            String actualContent;
-            try (FileInputStream reading = new FileInputStream(probe)) {
-                actualContent = new String(reading.readAllBytes(), StandardCharsets.UTF_8);
-                reading.close();
-            } catch (IOException e) {
-                actualContent = null;
-            }
-            assertEquals(expectedContent, actualContent);
-        }).verifyComplete();
+        //String expectedContent = "other example file";
+        StepVerifier.create(storage.upload(FileInformation.builder().name("test2.txt").build()))
+        .expectSubscription()
+        // .assertNext(v -> {
+        //     File probe = Path.of(ROOT_FOLDER).resolve("test2.txt").toFile();
+        //     assertTrue(probe.exists());
+        //     String actualContent;
+        //     try (FileInputStream reading = new FileInputStream(probe)) {
+        //         actualContent = new String(reading.readAllBytes(), StandardCharsets.UTF_8);
+        //         reading.close();
+        //     } catch (IOException e) {
+        //         actualContent = null;
+        //     }
+        //     assertEquals(expectedContent, actualContent);
+        // })
+        .assertNext(actual -> assertInstanceOf(BufferedFileWriter.class, actual, "is instance of BufferedFileWriter"))
+        .verifyComplete();
     }
 
     @Test
     void testUploadFailedUploadError() {
-        StepVerifier.create(storage.upload(FileInformation.builder().name("").build(), InputStream.nullInputStream()))
+        StepVerifier.create(storage.upload(FileInformation.builder().name("").build()))
             .expectError(FileUploadException.class)
             .verify();
     }

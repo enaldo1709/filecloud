@@ -2,8 +2,9 @@ dependencies{
     implementation project(':model')
     implementation project(':usecase')
 
-    implementation 'org.springframework.boot:spring-boot-starter-web:3.0.5'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator:3.0.5'
-    implementation 'org.springframework:spring-context:6.0.7'
+    //implementation 'org.springframework.boot:spring-boot-starter-web:3.0.6'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux:3.0.6'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator:3.0.6'
+    implementation 'org.springframework:spring-context:6.0.8'
     
 }
