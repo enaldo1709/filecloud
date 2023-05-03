@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterAll;
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.elenaldo.model.file.FileInformation;
+import com.elenaldo.model.file.exception.FileDeleteException;
 import com.elenaldo.model.file.exception.FileDownloadException;
 import com.elenaldo.model.file.exception.FileNotFoundException;
 import com.elenaldo.model.file.exception.FileUploadException;
@@ -49,21 +52,21 @@ class LocalDriveStorageTest {
 
     @AfterAll
     static void postTests() throws IOException {
-        Path root = Path.of(ROOT_FOLDER);
-        for (File file : root.toFile().listFiles()) {
-            if (file.isDirectory()) {
-                for (File f2 : file.listFiles()) {
-                    Files.delete(f2.toPath());
-                }
+        deleteFile(Path.of(ROOT_FOLDER).toFile());
+    }
+
+    private static void deleteFile(File file) throws IOException {
+        if (file.isDirectory()) {
+            for (File f2 : file.listFiles()) {
+                deleteFile(f2);
             }
-            Files.delete(file.toPath());
         }
-        Files.deleteIfExists(root);
+        Files.delete(file.toPath());
     }
 
     @BeforeEach
     void setUp() throws IOException {
-        storage = new LocalDriveStorage(ROOT_FOLDER,30);
+        storage = new LocalDriveStorage(ROOT_FOLDER,1);
     }
 
     @Test
@@ -142,6 +145,20 @@ class LocalDriveStorageTest {
         .assertNext(actual -> assertInstanceOf(BufferedFileWriter.class, actual, "is instance of BufferedFileWriter"))
         .verifyComplete();
     }
+    
+    @Test
+    void testUploadFailedInvalidFilename() {
+        StepVerifier.create(storage.upload(FileInformation.builder().build()))
+            .expectError(FileUploadException.class)
+            .verify();
+    }
+    
+    @Test
+    void testUploadFailedTrashFilename() {
+        StepVerifier.create(storage.upload(FileInformation.builder().name("trash").build()))
+            .expectError(FileUploadException.class)
+            .verify();
+    }
 
     @Test
     void testUploadFailedUploadError() {
@@ -161,7 +178,84 @@ class LocalDriveStorageTest {
     }
     
     @Test
-    void testDeleteFailed() {
-
+    void testDeleteFailed() throws IOException {
+        preTests();
+        StepVerifier.create(storage.delete("FILE_NAME"))
+            .expectError(FileDeleteException.class)
+            .verify();
     }
+
+    @Test
+    void testListSuccess() throws IOException {
+        postTests();
+        preTests();
+        setUp();
+        StepVerifier.create(storage.list())
+            .expectSubscription()
+            .assertNext(f -> assertEquals(FILE_NAME, f.getName()))
+            .verifyComplete();
+        
+        deleteFile(Path.of(ROOT_FOLDER).resolve("trash").toFile());
+        
+        StepVerifier.create(storage.list())
+            .expectSubscription()
+            .assertNext(f -> assertEquals(FILE_NAME, f.getName()))
+            .verifyComplete();
+
+        deleteFile(Path.of(ROOT_FOLDER).resolve(FILE_NAME).toFile());
+        
+        StepVerifier.create(storage.list())
+            .expectSubscription()
+            .verifyComplete();
+        preTests();
+    }
+
+    @Test
+    void testListFailed() throws IOException {
+        postTests();
+        
+        StepVerifier.create(storage.list())
+            .expectError(FileNotFoundException.class)
+            .verify();
+        
+        
+        preTests();
+    }
+
+    @Test
+    void testFlushOldFilesSuccess() throws IOException {
+        Path trash = Path.of(ROOT_FOLDER).resolve("trash");
+
+        File testFile = trash.resolve("file-to-flush").toFile();
+        FileOutputStream writing = new FileOutputStream(testFile);
+        writing.write(FILE_CONTENT.getBytes());
+        writing.close();
+
+        testFile.setLastModified(Instant.now().minus(2, ChronoUnit.DAYS).toEpochMilli());
+
+        storage.flushOldFiles();
+
+        assertFalse(testFile::exists);
+    }
+
+    @Test
+    void testFlushOldFilesFailed() throws IOException {
+
+        Path otherDir = Path.of(ROOT_FOLDER).resolve("trash").resolve("other");
+        Files.createDirectories(otherDir);
+
+        File testFile = otherDir.resolve("file-to-flush").toFile();
+        FileOutputStream writing = new FileOutputStream(testFile);
+        writing.write(FILE_CONTENT.getBytes());
+        writing.close();
+
+        otherDir.toFile().setLastModified(Instant.now().minus(2, ChronoUnit.DAYS).toEpochMilli());
+        testFile.setLastModified(Instant.now().minus(2, ChronoUnit.DAYS).toEpochMilli());
+
+        storage.flushOldFiles();
+
+        assertTrue(testFile::exists);
+        postTests();
+        preTests();
+    }   
 }

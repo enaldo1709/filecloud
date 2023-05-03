@@ -70,26 +70,32 @@ public class LocalDriveStorage implements FileStorage {
     @Override
     public Mono<BufferedFileWriter> upload(FileInformation information) {
         return Mono.just(information)
-            .map(FileInformation::getName)
             .flatMap(this::validateFilename)
+            .map(FileInformation::getName)
             .map(storage::resolve)
             .map(Path::toFile)
-            .onErrorMap(FileUploadException::new)
-            .map(LocalBufferedFileWriter::new);
+            .map(LocalBufferedFileWriter::new)
+            .map(BufferedFileWriter.class::cast)
+            .doOnError(e -> log.error("Error uploading file -> ", e))
+            .onErrorMap(FileUploadException::new);
     }
 
-    private Mono<String> validateFilename(String filename) {
-        if (Objects.isNull(filename) || "".equals(filename)) 
+    private Mono<FileInformation> validateFilename(FileInformation fileInformation) {
+        if (Objects.isNull(fileInformation.getName()))
+            return Mono.error(new FileUploadException(new NullPointerException("FileInformation.name is null")));
+        if ("".equals(fileInformation.getName()) || trash.toFile().getName().equals(fileInformation.getName())) 
             return Mono.error(new FileUploadException(null));
-        return Mono.just(filename);
+        return Mono.just(fileInformation);
     }
 
 
     @Override
     public Flux<FileInformation> list() {
         return Mono.just(storage.toFile())
+            .flatMap(f -> f.exists() ? Mono.just(f) : Mono.error(new FileNotFoundException()))
             .map(File::listFiles)
             .flatMapIterable(Arrays::asList)
+            .filter(f -> !(trash.toFile().getName().equals(f.getName())))
             .map(f -> FileInformation.builder().name(f.getName()).build())
             .doOnError(e -> log.error("Error reading files -> ", e.getCause()))
             .onErrorMap(FileNotFoundException::new);
@@ -133,7 +139,7 @@ public class LocalDriveStorage implements FileStorage {
         }
     }
 
-    private void flushOldFiles() {
+    protected void flushOldFiles() {
         AtomicInteger deleted = new AtomicInteger(0);
         Arrays.stream(this.trash.toFile().listFiles())
             .filter(f -> Instant.now().minus(trashTTL, ChronoUnit.DAYS).isAfter(Instant.ofEpochMilli(f.lastModified())))

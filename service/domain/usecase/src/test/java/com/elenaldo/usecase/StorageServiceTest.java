@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,6 +25,7 @@ import com.elenaldo.model.file.exception.FileUploadException;
 import com.elenaldo.model.file.gateways.BufferedFileWriter;
 import com.elenaldo.model.file.gateways.FileStorage;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -84,6 +87,22 @@ class StorageServiceTest {
             .assertNext(actual -> assertEquals(expected, actual))
             .verifyComplete();
     }
+    
+    @Test
+    void testDownloadFailedException() throws FileNotFoundException, FileDownloadException {
+        when(storage.download(any(FileInformation.class)))
+            .thenReturn(Mono.error(new IOException()));
+        
+        OperationResult expected = OperationResult.builder()
+            .status(OperationStatus.FAILED)
+            .message("Internal error")
+            .build();
+
+        StepVerifier.create(service.download(FileInformation.builder().name("test").build()))
+            .expectSubscription()
+            .assertNext(actual -> assertEquals(expected, actual))
+            .verifyComplete();
+    }
 
     @Test
     void testUploadSuccess() throws FileUploadException {
@@ -120,5 +139,20 @@ class StorageServiceTest {
             .create(service.upload("test"))
             .expectError(FileUploadException.class)
             .verify();
+    }
+
+    @Test
+    void testList() {
+        when(storage.list()).thenReturn(Flux.just(
+            FileInformation.builder().name("file1").build(),
+            FileInformation.builder().name("file2").build()
+        ));
+
+        StepVerifier.create(service.list())
+            .expectSubscription()
+            .assertNext(fi -> assertEquals("file1", fi.getName()))
+            .assertNext(fi -> assertEquals("file2", fi.getName()))
+            .verifyComplete();
+            
     }
 }

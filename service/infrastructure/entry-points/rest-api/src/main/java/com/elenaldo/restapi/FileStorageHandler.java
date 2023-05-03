@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -14,6 +15,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import com.elenaldo.model.file.FileContent;
 import com.elenaldo.model.file.FileInformation;
 import com.elenaldo.model.file.OperationResult;
+import com.elenaldo.model.file.enums.OperationStatus;
 import com.elenaldo.model.file.exception.OperationException;
 import com.elenaldo.usecase.StorageService;
 
@@ -35,7 +37,6 @@ public class FileStorageHandler {
 
     public Mono<ServerResponse> upload(ServerRequest req) {
         return Mono.justOrEmpty(req.queryParam("filename"))
-            .switchIfEmpty(Mono.just("file"))
             .flatMap(service::upload)
             .flatMap(writer -> req.multipartData()
                 .flatMapIterable(m -> m.get("file"))
@@ -44,9 +45,11 @@ public class FileStorageHandler {
                     .doOnNext(writer::buffer)
                     .doOnComplete(writer::finish)
                     .subscribe()
-                ).then(Mono.fromSupplier(writer::getResult))
-            ).flatMap(ServerResponse.ok()::bodyValue)
-            .onErrorResume(OperationException.class, ServerResponse.badRequest()::bodyValue);
+                ).then(writer.getResult()))
+            .flatMap(r -> mapResultResponse(HttpStatus.CREATED, r))
+            .onErrorResume(OperationException.class, e -> mapResultResponse(HttpStatus.INTERNAL_SERVER_ERROR, e))
+            .switchIfEmpty(Mono.error(new OperationException("required param 'filename' not found",null)))
+            .onErrorResume(OperationException.class, e -> mapResultResponse(HttpStatus.BAD_REQUEST, e));
     }
 
     public Mono<ServerResponse> list(ServerRequest req) {
@@ -63,6 +66,7 @@ public class FileStorageHandler {
             .flatMap(OperationResult::evaluate)
             .map(OperationResult::getContent)
             .flatMap(this::mapDownloadResponse)
+            .onErrorResume(OperationException.class, e -> mapResultResponse(HttpStatus.INTERNAL_SERVER_ERROR,e))
             .switchIfEmpty(ServerResponse.badRequest().bodyValue("required param 'filename' not found"));
     }
 
@@ -76,6 +80,16 @@ public class FileStorageHandler {
             ));
     }
 
-    private record FileInformationDTO(String name, String downloadURL){}
+    private Mono<ServerResponse> mapResultResponse(HttpStatus status, OperationResult result) {
+        return Mono.just(new OperationResultDTO(result.getStatus(), result.getMessage()))
+            .flatMap(ServerResponse.status(status)::bodyValue);
+    }
 
+    private Mono<ServerResponse> mapResultResponse(HttpStatus status, OperationException exception) {
+        return Mono.just(exception.getResult())
+            .flatMap(or -> mapResultResponse(status, or));
+    }
+
+    private record FileInformationDTO(String name, String downloadURL){}
+    private record OperationResultDTO(OperationStatus status, String message){}
 }

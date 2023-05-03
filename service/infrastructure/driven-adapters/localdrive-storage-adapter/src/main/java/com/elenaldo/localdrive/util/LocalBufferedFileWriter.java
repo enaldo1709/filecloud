@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 
@@ -12,6 +13,7 @@ import com.elenaldo.model.file.enums.OperationStatus;
 import com.elenaldo.model.file.gateways.BufferedFileWriter;
 
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 public class LocalBufferedFileWriter implements BufferedFileWriter{
@@ -19,6 +21,7 @@ public class LocalBufferedFileWriter implements BufferedFileWriter{
 	private File file;
 	private byte[] buffer;
 	private int wrote;
+	private boolean error;
 	private boolean finished;
     private OperationResult result;
     private CountDownLatch latch;
@@ -27,6 +30,7 @@ public class LocalBufferedFileWriter implements BufferedFileWriter{
 		file = new File(filename);
 		buffer = new byte[BUFFER_SIZE];
 		finished = false;
+		error = false;
 		wrote = 0;
         latch = new CountDownLatch(1);
         result = OperationResult.builder()
@@ -39,6 +43,7 @@ public class LocalBufferedFileWriter implements BufferedFileWriter{
 		this.file = file;
 		buffer = new byte[BUFFER_SIZE];
 		finished = false;
+		error = false;
 		wrote = 0;
         latch = new CountDownLatch(1);
         result = OperationResult.builder()
@@ -65,8 +70,12 @@ public class LocalBufferedFileWriter implements BufferedFileWriter{
 
     @Override
     public void finish() {
+        if (finished)
+            return;
         finished = true;
 		checkReadyAndWrite();
+        if (error) 
+            return;
         result = OperationResult.builder()
             .status(OperationStatus.SUCCESS)
             .message("File uploaded successfully")
@@ -77,20 +86,29 @@ public class LocalBufferedFileWriter implements BufferedFileWriter{
 
     @Override
     public void finishWithError(String message, Throwable cause) {
+        finished = true;
+        error = true;
         result = OperationResult.builder()
             .status(OperationStatus.FAILED)
             .message(message)
             .build();
         log.error(message + " -> ", cause);
-        buffer = null;
+        buffer = new byte[0];
         wrote = 0;
-        if (file.exists()) file.deleteOnExit();
+        try {
+            Files.deleteIfExists(file.toPath());
+        } catch (IOException e) {
+            log.warn("Couldn't delete corrupted file -> ",e);
+        }
         latch.countDown();
     }
 
     private void checkReadyAndWrite() {
+        if (wrote == 0) 
+            return;
 		if (wrote < buffer.length) {
-			if (!finished) return;
+			if (!finished) 
+                return;
 			buffer = Arrays.copyOf(buffer, wrote);
 		}
 		
@@ -112,14 +130,14 @@ public class LocalBufferedFileWriter implements BufferedFileWriter{
 	}
 
     @Override
-    public OperationResult getResult() {
+    public Mono<OperationResult> getResult() {
         try {
             latch.await();
-            return result;
+            return result.evaluate();
         } catch (InterruptedException e) {
             log.warn("Error awaiting for latch", e);
             Thread.currentThread().interrupt();
-            return result;
+            return result.evaluate();
         }
     }
 }
