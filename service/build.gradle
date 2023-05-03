@@ -1,6 +1,6 @@
 buildscript {
 	ext {
-		springBootVersion = '3.0.5'
+		springBootVersion = '3.0.6'
 		sonarVersion = '4.0.0.2929'
 		jacocoVersion = '0.8.8'
         lombokVersion = '1.18.24'
@@ -117,6 +117,8 @@ tasks.withType(JavaCompile) {
 tasks.named('wrapper') {
     gradleVersion = '8.0.2'
 }
+
+tasks.named("jacocoMergedReport").configure { dependsOn("test") }
 
 bootJar {
     enabled = false

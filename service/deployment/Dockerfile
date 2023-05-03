@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-alpine
+FROM eclipse-temurin:17-jre-alpine
 VOLUME /tmp
 
 # Low privileges user creation
@@ -14,5 +14,5 @@ EXPOSE 8080
 # Service configuration
 ENV JAVA_OPTS="-XX:+UseContainerSupport -Djava.security.egd=file:/dev/./urandom"
 
-# USER appuser
+USER appuser
 # ENTRYPOINT [ "sh", "-c", "java ${JAVA_OPTS} -jar ms-book-service.jar" ]

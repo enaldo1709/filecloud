@@ -10,4 +10,5 @@ import lombok.Data;
 public class FileContent {
     private FileInformation information;
     private InputStream content;
+    private long size;
 }

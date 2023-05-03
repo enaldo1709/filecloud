@@ -1,14 +1,12 @@
 package com.elenaldo.usecase;
 
-import java.io.InputStream;
-import java.nio.file.FileAlreadyExistsException;
-
 import com.elenaldo.model.file.FileInformation;
 import com.elenaldo.model.file.OperationResult;
 import com.elenaldo.model.file.enums.OperationStatus;
 import com.elenaldo.model.file.exception.FileDownloadException;
+import com.elenaldo.model.file.exception.FileExistsException;
 import com.elenaldo.model.file.exception.FileNotFoundException;
-import com.elenaldo.model.file.exception.FileUploadException;
+import com.elenaldo.model.file.gateways.BufferedFileWriter;
 import com.elenaldo.model.file.gateways.FileStorage;
 
 import lombok.RequiredArgsConstructor;
@@ -19,17 +17,13 @@ import reactor.core.publisher.Mono;
 public class StorageService {
     private final FileStorage storage;
 
-    public Mono<OperationResult> upload(FileInformation info, InputStream data) {
+    public Mono<BufferedFileWriter> upload(String filename){
+        FileInformation info = FileInformation.builder().name(filename).build();
         return storage.exist(info.getName())
             .flatMap(b -> b.booleanValue() 
-                ? this.mapErrorResult(new FileAlreadyExistsException("File already exists on storage"))
-                : storage.upload(info, data)
-                    .map(i -> OperationResult.builder()
-                        .status(OperationStatus.SUCCESS)
-                        .message("File uploaded successfuly")
-                        .build()
-                    )
-            ).onErrorResume(FileUploadException.class, this::mapErrorResult);
+                ? Mono.error(new FileExistsException())
+                : storage.upload(info)
+            );
     }
 
     public Mono<OperationResult> download(FileInformation file) {
