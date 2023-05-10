@@ -12,18 +12,18 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
-import com.elenaldo.model.file.FileContent;
-import com.elenaldo.model.file.FileInformation;
-import com.elenaldo.model.file.OperationResult;
-import com.elenaldo.model.file.enums.OperationStatus;
-import com.elenaldo.model.file.exception.OperationException;
+import com.elenaldo.model.FileContent;
+import com.elenaldo.model.FileEntry;
+import com.elenaldo.model.OperationResult;
+import com.elenaldo.model.enums.OperationStatus;
+import com.elenaldo.model.exception.OperationException;
 import com.elenaldo.usecase.StorageService;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
-@Slf4j
+
+
 @Component
 @RequiredArgsConstructor
 public class FileStorageHandler {
@@ -61,7 +61,7 @@ public class FileStorageHandler {
 
     public Mono<ServerResponse> download(ServerRequest req) {
         return Mono.justOrEmpty(req.queryParam("filename"))
-            .map(n -> FileInformation.builder().name(n).build())
+            .map(n -> FileEntry.builder().name(n).build())
             .flatMap(service::download)
             .flatMap(OperationResult::evaluate)
             .map(OperationResult::getContent)
@@ -74,7 +74,7 @@ public class FileStorageHandler {
         return ServerResponse.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", fc.getInformation().getName()))
             .contentType(MediaType.APPLICATION_OCTET_STREAM)
-            .contentLength(fc.getSize())
+            .contentLength(fc.getInformation().getSize())
             .body(BodyInserters.fromDataBuffers(
                 DataBufferUtils.readInputStream(fc::getContent, new DefaultDataBufferFactory(), BUFFER_SIZE)
             ));

@@ -1,8 +1,8 @@
-package com.elenaldo.model.file.gateways;
+package com.elenaldo.model.gateways;
 
 import java.io.InputStream;
 
-import com.elenaldo.model.file.OperationResult;
+import com.elenaldo.model.OperationResult;
 
 import reactor.core.publisher.Mono;
 

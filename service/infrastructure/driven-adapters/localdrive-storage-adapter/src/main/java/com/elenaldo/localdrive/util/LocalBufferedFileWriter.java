@@ -8,9 +8,9 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 
-import com.elenaldo.model.file.OperationResult;
-import com.elenaldo.model.file.enums.OperationStatus;
-import com.elenaldo.model.file.gateways.BufferedFileWriter;
+import com.elenaldo.model.OperationResult;
+import com.elenaldo.model.enums.OperationStatus;
+import com.elenaldo.model.gateways.BufferedFileWriter;
 
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;

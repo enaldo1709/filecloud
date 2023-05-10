@@ -12,9 +12,11 @@ include ':app'
 include ':model'
 include ':usecase'
 include ':localdrive-storage-adapter'
+include ':users-repository-postgresql-adapter'
 include ':rest-api'
 project(':app').projectDir = file('./app')
 project(':model').projectDir = file('./domain/model')
 project(':usecase').projectDir = file('./domain/usecase')
 project(':localdrive-storage-adapter').projectDir = file('./infrastructure/driven-adapters/localdrive-storage-adapter')
+project(':users-repository-postgresql-adapter').projectDir = file('./infrastructure/driven-adapters/users-repository-postgresql-adapter')
 project(':rest-api').projectDir = file('./infrastructure/entry-points/rest-api')

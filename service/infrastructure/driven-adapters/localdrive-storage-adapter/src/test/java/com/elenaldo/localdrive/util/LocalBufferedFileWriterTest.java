@@ -27,8 +27,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.elenaldo.model.file.enums.OperationStatus;
-import com.elenaldo.model.file.exception.OperationException;
+import com.elenaldo.model.enums.OperationStatus;
+import com.elenaldo.model.exception.OperationException;
 
 import reactor.test.StepVerifier;
 

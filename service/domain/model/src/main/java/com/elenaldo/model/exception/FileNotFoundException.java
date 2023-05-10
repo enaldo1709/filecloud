@@ -1,4 +1,4 @@
-package com.elenaldo.model.file.exception;
+package com.elenaldo.model.exception;
 
 public class FileNotFoundException extends Exception{
     public FileNotFoundException() {

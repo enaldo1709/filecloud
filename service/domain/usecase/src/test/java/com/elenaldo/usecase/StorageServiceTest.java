@@ -14,16 +14,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.elenaldo.model.file.FileContent;
-import com.elenaldo.model.file.FileInformation;
-import com.elenaldo.model.file.OperationResult;
-import com.elenaldo.model.file.enums.OperationStatus;
-import com.elenaldo.model.file.exception.FileDownloadException;
-import com.elenaldo.model.file.exception.FileExistsException;
-import com.elenaldo.model.file.exception.FileNotFoundException;
-import com.elenaldo.model.file.exception.FileUploadException;
-import com.elenaldo.model.file.gateways.BufferedFileWriter;
-import com.elenaldo.model.file.gateways.FileStorage;
+import com.elenaldo.model.FileContent;
+import com.elenaldo.model.FileEntry;
+import com.elenaldo.model.OperationResult;
+import com.elenaldo.model.enums.OperationStatus;
+import com.elenaldo.model.exception.FileDownloadException;
+import com.elenaldo.model.exception.FileExistsException;
+import com.elenaldo.model.exception.FileNotFoundException;
+import com.elenaldo.model.exception.FileUploadException;
+import com.elenaldo.model.gateways.BufferedFileWriter;
+import com.elenaldo.model.gateways.FileStorage;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -42,7 +42,7 @@ class StorageServiceTest {
     void testDownloadSuccess() throws FileNotFoundException, FileDownloadException {
         FileContent content = FileContent.builder().build();
         
-        when(storage.download(any(FileInformation.class)))
+        when(storage.download(any(FileEntry.class)))
             .thenReturn(Mono.just(content));
 
         OperationResult expected = OperationResult.builder()
@@ -50,7 +50,7 @@ class StorageServiceTest {
             .content(content)
             .build();
         
-        StepVerifier.create(service.download(FileInformation.builder().name("test").build()))
+        StepVerifier.create(service.download(FileEntry.builder().name("test").build()))
             .expectSubscription()
             .assertNext(actual -> assertEquals(expected, actual))
             .verifyComplete();
@@ -58,7 +58,7 @@ class StorageServiceTest {
     
     @Test
     void testDownloadFailedFileNotFound() throws FileNotFoundException, FileDownloadException {
-        when(storage.download(any(FileInformation.class)))
+        when(storage.download(any(FileEntry.class)))
             .thenReturn(Mono.error(new FileNotFoundException()));
         
         OperationResult expected = OperationResult.builder()
@@ -66,7 +66,7 @@ class StorageServiceTest {
             .message("File not found")
             .build();
 
-        StepVerifier.create(service.download(FileInformation.builder().name("test").build()))
+        StepVerifier.create(service.download(FileEntry.builder().name("test").build()))
             .expectSubscription()
             .assertNext(actual -> assertEquals(expected, actual))
             .verifyComplete();
@@ -74,7 +74,7 @@ class StorageServiceTest {
     
     @Test
     void testDownloadFailedDownloadException() throws FileNotFoundException, FileDownloadException {
-        when(storage.download(any(FileInformation.class)))
+        when(storage.download(any(FileEntry.class)))
             .thenReturn(Mono.error(new FileDownloadException()));
         
         OperationResult expected = OperationResult.builder()
@@ -82,7 +82,7 @@ class StorageServiceTest {
             .message("Internal error during file download")
             .build();
 
-        StepVerifier.create(service.download(FileInformation.builder().name("test").build()))
+        StepVerifier.create(service.download(FileEntry.builder().name("test").build()))
             .expectSubscription()
             .assertNext(actual -> assertEquals(expected, actual))
             .verifyComplete();
@@ -90,7 +90,7 @@ class StorageServiceTest {
     
     @Test
     void testDownloadFailedException() throws FileNotFoundException, FileDownloadException {
-        when(storage.download(any(FileInformation.class)))
+        when(storage.download(any(FileEntry.class)))
             .thenReturn(Mono.error(new IOException()));
         
         OperationResult expected = OperationResult.builder()
@@ -98,7 +98,7 @@ class StorageServiceTest {
             .message("Internal error")
             .build();
 
-        StepVerifier.create(service.download(FileInformation.builder().name("test").build()))
+        StepVerifier.create(service.download(FileEntry.builder().name("test").build()))
             .expectSubscription()
             .assertNext(actual -> assertEquals(expected, actual))
             .verifyComplete();
@@ -109,7 +109,7 @@ class StorageServiceTest {
         BufferedFileWriter writer = mock(BufferedFileWriter.class);
 
         when(storage.exist(anyString())).thenReturn(Mono.just(false));
-        when(storage.upload(any(FileInformation.class))).thenReturn(Mono.just(writer));
+        when(storage.upload(any(FileEntry.class))).thenReturn(Mono.just(writer));
 
         StepVerifier
             .create(service.upload("test"))
@@ -131,7 +131,7 @@ class StorageServiceTest {
     @Test
     void testUploadFailedByUploadException() throws FileUploadException {
         when(storage.exist(anyString())).thenReturn(Mono.just(false));
-        when(storage.upload(any(FileInformation.class)))
+        when(storage.upload(any(FileEntry.class)))
             .thenReturn(Mono.error(new FileUploadException(null)));
 
 
@@ -144,8 +144,8 @@ class StorageServiceTest {
     @Test
     void testList() {
         when(storage.list()).thenReturn(Flux.just(
-            FileInformation.builder().name("file1").build(),
-            FileInformation.builder().name("file2").build()
+            FileEntry.builder().name("file1").build(),
+            FileEntry.builder().name("file2").build()
         ));
 
         StepVerifier.create(service.list())

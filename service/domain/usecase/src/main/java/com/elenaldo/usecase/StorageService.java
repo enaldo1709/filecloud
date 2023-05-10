@@ -1,13 +1,13 @@
 package com.elenaldo.usecase;
 
-import com.elenaldo.model.file.FileInformation;
-import com.elenaldo.model.file.OperationResult;
-import com.elenaldo.model.file.enums.OperationStatus;
-import com.elenaldo.model.file.exception.FileDownloadException;
-import com.elenaldo.model.file.exception.FileExistsException;
-import com.elenaldo.model.file.exception.FileNotFoundException;
-import com.elenaldo.model.file.gateways.BufferedFileWriter;
-import com.elenaldo.model.file.gateways.FileStorage;
+import com.elenaldo.model.FileEntry;
+import com.elenaldo.model.OperationResult;
+import com.elenaldo.model.enums.OperationStatus;
+import com.elenaldo.model.exception.FileDownloadException;
+import com.elenaldo.model.exception.FileExistsException;
+import com.elenaldo.model.exception.FileNotFoundException;
+import com.elenaldo.model.gateways.BufferedFileWriter;
+import com.elenaldo.model.gateways.FileStorage;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -18,7 +18,7 @@ public class StorageService {
     private final FileStorage storage;
 
     public Mono<BufferedFileWriter> upload(String filename){
-        FileInformation info = FileInformation.builder().name(filename).build();
+        FileEntry info = FileEntry.builder().name(filename).build();
         return storage.exist(info.getName())
             .flatMap(b -> b.booleanValue() 
                 ? Mono.error(new FileExistsException())
@@ -26,7 +26,7 @@ public class StorageService {
             );
     }
 
-    public Mono<OperationResult> download(FileInformation file) {
+    public Mono<OperationResult> download(FileEntry file) {
         return storage.download(file)
             .map(content -> OperationResult.builder()
                     .status(OperationStatus.SUCCESS)
@@ -39,7 +39,7 @@ public class StorageService {
             ));
     }
 
-    public Flux<FileInformation> list() {
+    public Flux<FileEntry> list() {
         return storage.list();
     }
 

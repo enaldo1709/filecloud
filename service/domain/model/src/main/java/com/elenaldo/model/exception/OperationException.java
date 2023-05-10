@@ -1,7 +1,7 @@
-package com.elenaldo.model.file.exception;
+package com.elenaldo.model.exception;
 
-import com.elenaldo.model.file.OperationResult;
-import com.elenaldo.model.file.enums.OperationStatus;
+import com.elenaldo.model.OperationResult;
+import com.elenaldo.model.enums.OperationStatus;
 
 public class OperationException extends Exception{ 
     private final transient OperationResult result;

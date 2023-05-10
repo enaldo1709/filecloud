@@ -15,9 +15,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
-import com.elenaldo.model.file.gateways.FileStorage;
+import com.elenaldo.model.gateways.FileStorage;
+import com.elenaldo.model.gateways.UserRepository;
 import com.elenaldo.restapi.FileStorageHandler;
+import com.elenaldo.restapi.UserHandler;
 import com.elenaldo.usecase.StorageService;
+import com.elenaldo.usecase.UserService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,9 +29,15 @@ import lombok.extern.slf4j.Slf4j;
 public class RestApiConfig {
     
     @Bean
-    StorageService getService(FileStorage storage) {
+    StorageService getStorageService(FileStorage storage) {
         return new StorageService(storage);
     }
+
+    @Bean
+    UserService getUserService(UserRepository repository) {
+        return new UserService(repository);
+    }
+
 
     @Bean
     @Qualifier("download-url")
@@ -47,12 +56,22 @@ public class RestApiConfig {
     }
 
     @Bean
-    RouterFunction<ServerResponse> getRoutes(
+    RouterFunction<ServerResponse> storageRoutes(
             @Value("${server.servlet.context-path}") String contextPath, 
             FileStorageHandler handler
     ) {
         return route(POST(contextPath.concat("/upload")), handler::upload)
             .andRoute(GET(contextPath.concat("/list")), handler::list)
             .andRoute(GET(contextPath.concat("/download")), handler::download);
+    }
+    
+    @Bean
+    RouterFunction<ServerResponse> userRoutes(
+            @Value("${server.servlet.context-path}") String contextPath, 
+            UserHandler handler
+    ) {
+        String path = contextPath.concat("/users");
+        return route(GET(path), handler::getUser)
+            .andRoute(GET(path.concat("/all")), handler::list);
     }
 }

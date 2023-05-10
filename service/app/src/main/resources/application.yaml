@@ -28,3 +28,12 @@ storage:
     ttl: ${TRASH_TTL:30}
   local:
     folder: ${ROOT_FOLDER:"./filecloud"}
+
+database:
+  r2dbc:
+    database: ${DB_DATABASE}
+    schema: ${DB_SCHEMA}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    host: ${DB_HOST}
+    port: ${DB_PORT}

@@ -1,7 +1,7 @@
-package com.elenaldo.model.file;
+package com.elenaldo.model;
 
-import com.elenaldo.model.file.enums.OperationStatus;
-import com.elenaldo.model.file.exception.OperationException;
+import com.elenaldo.model.enums.OperationStatus;
+import com.elenaldo.model.exception.OperationException;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

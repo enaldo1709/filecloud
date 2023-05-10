@@ -4,6 +4,7 @@ dependencies {
     implementation project(':model')
     implementation project(':usecase')
     implementation project(':localdrive-storage-adapter')
+    implementation project(':users-repository-postgresql-adapter')
     implementation project(':rest-api')
  
     // implementation project(':r2dbc')

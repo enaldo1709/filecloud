@@ -1,4 +1,4 @@
-package com.elenaldo.model.file;
+package com.elenaldo.model;
 
 import java.io.InputStream;
 
@@ -8,7 +8,6 @@ import lombok.Data;
 @Data
 @Builder(toBuilder = true)
 public class FileContent {
-    private FileInformation information;
+    private FileEntry information;
     private InputStream content;
-    private long size;
 }

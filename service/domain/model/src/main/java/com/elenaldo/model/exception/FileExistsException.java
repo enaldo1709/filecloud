@@ -1,4 +1,4 @@
-package com.elenaldo.model.file.exception;
+package com.elenaldo.model.exception;
 
 public class FileExistsException extends Exception{
 

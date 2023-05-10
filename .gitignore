@@ -24,3 +24,10 @@
 
 # Node
 **node_modules**
+
+# Backup
+*.bk
+**.bk
+**/**.bk
+**bk**
+**/**bk**

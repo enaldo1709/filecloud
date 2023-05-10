@@ -18,13 +18,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 import com.elenaldo.localdrive.util.LocalBufferedFileWriter;
-import com.elenaldo.model.file.FileContent;
-import com.elenaldo.model.file.FileInformation;
-import com.elenaldo.model.file.exception.FileDeleteException;
-import com.elenaldo.model.file.exception.FileNotFoundException;
-import com.elenaldo.model.file.exception.FileUploadException;
-import com.elenaldo.model.file.gateways.BufferedFileWriter;
-import com.elenaldo.model.file.gateways.FileStorage;
+import com.elenaldo.model.FileContent;
+import com.elenaldo.model.FileEntry;
+import com.elenaldo.model.exception.FileDeleteException;
+import com.elenaldo.model.exception.FileNotFoundException;
+import com.elenaldo.model.exception.FileUploadException;
+import com.elenaldo.model.gateways.BufferedFileWriter;
+import com.elenaldo.model.gateways.FileStorage;
 
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -68,10 +68,10 @@ public class LocalDriveStorage implements FileStorage {
     }
 
     @Override
-    public Mono<BufferedFileWriter> upload(FileInformation information) {
+    public Mono<BufferedFileWriter> upload(FileEntry information) {
         return Mono.just(information)
             .flatMap(this::validateFilename)
-            .map(FileInformation::getName)
+            .map(FileEntry::getName)
             .map(storage::resolve)
             .map(Path::toFile)
             .map(LocalBufferedFileWriter::new)
@@ -80,7 +80,7 @@ public class LocalDriveStorage implements FileStorage {
             .onErrorMap(FileUploadException::new);
     }
 
-    private Mono<FileInformation> validateFilename(FileInformation fileInformation) {
+    private Mono<FileEntry> validateFilename(FileEntry fileInformation) {
         if (Objects.isNull(fileInformation.getName()))
             return Mono.error(new FileUploadException(new NullPointerException("FileInformation.name is null")));
         if ("".equals(fileInformation.getName()) || trash.toFile().getName().equals(fileInformation.getName())) 
@@ -90,27 +90,27 @@ public class LocalDriveStorage implements FileStorage {
 
 
     @Override
-    public Flux<FileInformation> list() {
+    public Flux<FileEntry> list() {
         return Mono.just(storage.toFile())
             .flatMap(f -> f.exists() ? Mono.just(f) : Mono.error(new FileNotFoundException()))
             .map(File::listFiles)
             .flatMapIterable(Arrays::asList)
             .filter(f -> !(trash.toFile().getName().equals(f.getName())))
-            .map(f -> FileInformation.builder().name(f.getName()).build())
+            .map(f -> FileEntry.builder().name(f.getName()).build())
             .doOnError(e -> log.error("Error reading files -> ", e.getCause()))
             .onErrorMap(FileNotFoundException::new);
     }
 
     @Override
-    public Mono<FileContent> download(FileInformation information) {
-        return Mono.just(information.getName())
+    public Mono<FileContent> download(FileEntry info) {
+        return Mono.just(info.getName())
             .map(storage::resolve)
             .map(Path::toFile)
             .flatMap(this::readFile)
-            .map(t -> FileContent.builder().content(t.getT1()).size(t.getT2().longValue()))
-            .map(b -> b.information(information))
+            .map(t -> FileContent.builder().content(t.getT1()).information(info.toBuilder().size(t.getT2()).build()))
             .map(b -> b.build())
-            .doOnSuccess(fc -> log.info("",fc))
+            .doOnSuccess(fc -> log.info("File read successfully -> name: {} size: {}",
+                fc.getInformation().getName(), fc.getInformation().getSize()))
             .doOnError(e -> log.error("Error reading file ->", e))
             .onErrorMap(FileNotFoundException::new);        
     }

@@ -25,11 +25,11 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.MultiValueMapAdapter;
 import org.springframework.web.reactive.function.server.ServerRequest;
 
-import com.elenaldo.model.file.FileContent;
-import com.elenaldo.model.file.FileInformation;
-import com.elenaldo.model.file.OperationResult;
-import com.elenaldo.model.file.enums.OperationStatus;
-import com.elenaldo.model.file.gateways.BufferedFileWriter;
+import com.elenaldo.model.FileContent;
+import com.elenaldo.model.FileEntry;
+import com.elenaldo.model.OperationResult;
+import com.elenaldo.model.enums.OperationStatus;
+import com.elenaldo.model.gateways.BufferedFileWriter;
 import com.elenaldo.usecase.StorageService;
 
 import reactor.core.publisher.Flux;
@@ -59,14 +59,13 @@ class FileStorageHandlerTest {
             .status(OperationStatus.SUCCESS)
             .content(
                 FileContent.builder()
-                    .information(FileInformation.builder().name("test-file").build())
+                    .information(FileEntry.builder().name("test-file").size(Long.valueOf(content.length())).build())
                     .content(is)
-                    .size(content.length())
                     .build()
             ).message("File downloaded successfully")
             .build();
 
-        when(service.download(any(FileInformation.class))).thenReturn(Mono.just(result));
+        when(service.download(any(FileEntry.class))).thenReturn(Mono.just(result));
         when(request.queryParam("filename")).thenReturn(Optional.of("test-file"));
         
         StepVerifier.create(handler.download(request))
@@ -78,13 +77,12 @@ class FileStorageHandlerTest {
             .status(OperationStatus.FAILED)
             .content(
                 FileContent.builder()
-                    .information(FileInformation.builder().name("test-file").build())
+                    .information(FileEntry.builder().name("test-file").size(0L).build())
                     .content(InputStream.nullInputStream())
-                    .size(0)
                     .build()
             ).message("Error downloading file")
             .build();
-        when(service.download(any(FileInformation.class))).thenReturn(Mono.just(result));
+        when(service.download(any(FileEntry.class))).thenReturn(Mono.just(result));
         StepVerifier.create(handler.download(request))
             .expectSubscription()
             .assertNext(res -> assertTrue(res.statusCode().is5xxServerError()))
@@ -100,9 +98,9 @@ class FileStorageHandlerTest {
     @Test
     void testList() {
         when(service.list()).thenReturn(Flux.just(
-            FileInformation.builder().name("file1").build(),
-            FileInformation.builder().name("file3").build(),
-            FileInformation.builder().name("file2").build()
+            FileEntry.builder().name("file1").build(),
+            FileEntry.builder().name("file3").build(),
+            FileEntry.builder().name("file2").build()
         ));
 
         StepVerifier.create(handler.list(request))

@@ -22,12 +22,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.elenaldo.model.file.FileInformation;
-import com.elenaldo.model.file.exception.FileDeleteException;
-import com.elenaldo.model.file.exception.FileDownloadException;
-import com.elenaldo.model.file.exception.FileNotFoundException;
-import com.elenaldo.model.file.exception.FileUploadException;
-import com.elenaldo.model.file.gateways.BufferedFileWriter;
+import com.elenaldo.model.FileEntry;
+import com.elenaldo.model.exception.FileDeleteException;
+import com.elenaldo.model.exception.FileDownloadException;
+import com.elenaldo.model.exception.FileNotFoundException;
+import com.elenaldo.model.exception.FileUploadException;
+import com.elenaldo.model.gateways.BufferedFileWriter;
 
 import reactor.test.StepVerifier;
 
@@ -89,7 +89,7 @@ class LocalDriveStorageTest {
 
     @Test
     void testDownloadSuccess() throws FileNotFoundException, FileDownloadException, IOException {
-        StepVerifier.create(storage.download(FileInformation.builder().name(FILE_NAME).build()))
+        StepVerifier.create(storage.download(FileEntry.builder().name(FILE_NAME).build()))
             .expectSubscription()
             .assertNext(content -> {
                 String actual;
@@ -104,7 +104,7 @@ class LocalDriveStorageTest {
 
     @Test
     void testDownloadFailedFileNotFound() throws FileNotFoundException, FileDownloadException, IOException {
-        StepVerifier.create(storage.download(FileInformation.builder().name("FILE_NAME").build()))
+        StepVerifier.create(storage.download(FileEntry.builder().name("FILE_NAME").build()))
             .expectError(FileNotFoundException.class)
             .verify();
     }
@@ -128,7 +128,7 @@ class LocalDriveStorageTest {
     @Test
     void testUploadSuccess() {
         //String expectedContent = "other example file";
-        StepVerifier.create(storage.upload(FileInformation.builder().name("test2.txt").build()))
+        StepVerifier.create(storage.upload(FileEntry.builder().name("test2.txt").build()))
         .expectSubscription()
         // .assertNext(v -> {
         //     File probe = Path.of(ROOT_FOLDER).resolve("test2.txt").toFile();
@@ -148,21 +148,21 @@ class LocalDriveStorageTest {
     
     @Test
     void testUploadFailedInvalidFilename() {
-        StepVerifier.create(storage.upload(FileInformation.builder().build()))
+        StepVerifier.create(storage.upload(FileEntry.builder().build()))
             .expectError(FileUploadException.class)
             .verify();
     }
     
     @Test
     void testUploadFailedTrashFilename() {
-        StepVerifier.create(storage.upload(FileInformation.builder().name("trash").build()))
+        StepVerifier.create(storage.upload(FileEntry.builder().name("trash").build()))
             .expectError(FileUploadException.class)
             .verify();
     }
 
     @Test
     void testUploadFailedUploadError() {
-        StepVerifier.create(storage.upload(FileInformation.builder().name("").build()))
+        StepVerifier.create(storage.upload(FileEntry.builder().name("").build()))
             .expectError(FileUploadException.class)
             .verify();
     }
